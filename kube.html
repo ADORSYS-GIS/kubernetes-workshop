@@ -1039,13 +1039,13 @@
                             <i data-lucide="play-circle" class="w-5 h-5 mr-2"></i>
                             Start Labs
                         </a>
-                        <a href="https://github.com/ADORSYS-GIS/kubernetes-workshop/blob/main/README.md" target="_blank" class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-900 rounded-lg font-semibold hover:bg-gray-200 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                        <a href="https://kubernetes.io/docs/" target="_blank" class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-900 rounded-lg font-semibold hover:bg-gray-200 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
                             <i data-lucide="book-open" class="w-5 h-5 mr-2"></i>
-                            Documentation
+                            Kubernetes Docs
                         </a>
-                        <a href="https://github.com/ADORSYS-GIS/kubernetes-workshop/archive/refs/heads/main.zip" target="_blank" class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                        <a href="https://github.com/ADORSYS-GIS/kubernetes-workshop/archive/refs/heads/main.zip" onclick="downloadLabsOnly(event)" class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
                             <i data-lucide="download" class="w-5 h-5 mr-2"></i>
-                            Download Resources
+                            Download Labs
                         </a>
                     </div>
                     <div class="mt-8 pt-8 border-t border-gray-200">
@@ -1058,6 +1058,14 @@
     </div>
 
     <script>
+        // Function to handle downloading only the labs folder
+        function downloadLabsOnly(event) {
+            event.preventDefault();
+            // Use DownGit service to download just the 03-hands-on folder
+            const labsFolderUrl = 'https://downgit.github.io/#/home?url=https://github.com/ADORSYS-GIS/kubernetes-workshop/tree/main/03-hands-on';
+            window.open(labsFolderUrl, '_blank');
+        }
+
         const chartJsTooltip = {
             callbacks: {
                 title: function(tooltipItems) {
