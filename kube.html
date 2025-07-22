@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kubernetes Architecture: An Interactive Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --k8s-primary: #326CE5;
+            --k8s-secondary: #61C1D3;
+            --k8s-accent: #FF6B35;
+            --k8s-dark: #1B1B1B;
+            --k8s-light: #F8FAFC;
+            --k8s-success: #10B981;
+            --k8s-warning: #F59E0B;
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --gradient-primary: linear-gradient(135deg, #326CE5 0%, #61C1D3 100%);
+            --gradient-accent: linear-gradient(135deg, #FF6B35 0%, #F59E0B 100%);
+        }
+        
+        * {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            color: #1B1B1B;
+            line-height: 1.6;
+        }
+        
+        .content-wrapper {
+            background: var(--k8s-light);
+            border-radius: 20px 20px 0 0;
+            box-shadow: var(--shadow-lg);
+            margin-top: 2rem;
+        }
+        
+        .hero-gradient {
+            background: var(--gradient-primary);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-attachment: fixed;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            height: 320px;
+            max-height: 400px;
+            border-radius: 12px;
+            padding: 1rem;
+            background: white;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+        
+        .flow-line {
+            width: 3px;
+            background: var(--gradient-primary);
+            margin: 0 auto;
+            border-radius: 2px;
+        }
+        
+        .flow-line-h {
+            height: 3px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+        
+        .k8s-box {
+            border: 2px solid var(--k8s-primary);
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px -5px rgba(50, 108, 229, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .k8s-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+        
+        .k8s-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px -5px rgba(50, 108, 229, 0.15);
+        }
+        
+        .k8s-box-title {
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .k8s-box-accent {
+            border: 2px solid var(--k8s-accent);
+            background: linear-gradient(145deg, #fff8f5 0%, #ffffff 100%);
+        }
+        
+        .k8s-box-accent::before {
+            background: var(--gradient-accent);
+        }
+        
+        .k8s-box-title-accent {
+            background: var(--gradient-accent);
+            color: white;
+        }
+        
+        .arrow-down {
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 12px solid var(--k8s-secondary);
+            margin: 8px auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        .arrow-right {
+            width: 0;
+            height: 0;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            border-left: 12px solid var(--k8s-secondary);
+            filter: drop-shadow(2px 0 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        .section-header {
+            position: relative;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(50, 108, 229, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 35px rgba(0, 0, 0, 0.12);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .step-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--k8s-primary);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .step-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .step-number {
+            background: var(--gradient-primary);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(50, 108, 229, 0.3);
+            margin-bottom: 1rem;
+        }
+        
+        .progress-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 1000;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--gradient-primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s infinite;
+        }
+        
+        .nav-dots {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .nav-dot.active {
+            background: var(--k8s-primary);
+            transform: scale(1.2);
+            box-shadow: 0 0 0 4px rgba(50, 108, 229, 0.2);
+        }
+        
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+        
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--k8s-dark);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+        
+        .tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-dots {
+                display: none;
+            }
+            
+            .content-wrapper {
+                margin-top: 1rem;
+                border-radius: 12px 12px 0 0;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Navigation Dots -->
+    <div class="nav-dots" id="navDots">
+        <div class="nav-dot active" data-section="hero"></div>
+        <div class="nav-dot" data-section="container-engines"></div>
+        <div class="nav-dot" data-section="anatomy"></div>
+        <div class="nav-dot" data-section="orchestration"></div>
+        <div class="nav-dot" data-section="architecture"></div>
+        <div class="nav-dot" data-section="pod-creation-flow"></div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="min-h-screen flex items-center justify-center relative" id="hero">
+        <div class="text-center z-10">
+            <h1 class="text-5xl md:text-8xl font-black hero-gradient tracking-tight mb-6 animate__animated animate__fadeInUp">
+                The Kubernetes<br>Universe
+            </h1>
+            <p class="text-xl md:text-2xl text-white max-w-4xl mx-auto mb-8 animate__animated animate__fadeInUp animate__delay-1s">
+                From a single container to a galaxy of orchestrated applications
+            </p>
+            <div class="animate__animated animate__fadeInUp animate__delay-2s">
+                <a href="#container-engines" class="inline-flex items-center px-8 py-4 bg-white text-gray-900 rounded-full font-semibold text-lg hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <i data-lucide="rocket" class="w-6 h-6 mr-3"></i>
+                    Begin Journey
+                </a>
+            </div>
+        </div>
+        
+        <!-- Floating Elements -->
+        <div class="absolute top-1/4 left-1/4 w-20 h-20 bg-blue-400 rounded-full opacity-20 animate-pulse-slow"></div>
+        <div class="absolute top-3/4 right-1/4 w-16 h-16 bg-purple-400 rounded-full opacity-20 animate-pulse-slow" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-3/4 w-12 h-12 bg-green-400 rounded-full opacity-20 animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="container mx-auto p-6 md:p-12 max-w-7xl">
+
+        <main>
+            <section id="container-engines" class="py-16">
+                <div class="section-header text-center">
+                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                        <i data-lucide="cpu" class="w-12 h-12 mx-auto mb-4 text-blue-500"></i>
+                        Container Engine Types and Features
+                    </h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">Understanding the runtime landscape that powers Kubernetes. The container runtime is the foundational layer that actually runs your containers.</p>
+                </div>
+                
+                <!-- Container Engine Landscape -->
+                <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 mb-8">
+                    <h3 class="text-2xl font-bold mb-6 text-center text-[#FF6B35]">Container Runtime Landscape</h3>
+                    <p class="text-center text-gray-600 mb-8">Kubernetes supports multiple container engines through the Container Runtime Interface (CRI)</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- High-Level Runtimes -->
+                        <div class="feature-card">
+                            <div class="flex items-center mb-4">
+                                <i data-lucide="layers" class="w-8 h-8 text-blue-500 mr-3"></i>
+                                <h4 class="text-xl font-bold text-gray-800">High-Level Runtimes</h4>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                    <h5 class="font-bold text-blue-700 mb-1">Docker Engine</h5>
+                                    <p class="text-sm text-gray-600">Full-featured platform with daemon, CLI, and registry integration</p>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                    <h5 class="font-bold text-blue-700 mb-1">containerd</h5>
+                                    <p class="text-sm text-gray-600">Lightweight, core container runtime extracted from Docker</p>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+                                    <h5 class="font-bold text-blue-700 mb-1">CRI-O</h5>
+                                    <p class="text-sm text-gray-600">Kubernetes-native runtime designed specifically for CRI compliance</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Low-Level Runtimes -->
+                        <div class="feature-card">
+                            <div class="flex items-center mb-4">
+                                <i data-lucide="zap" class="w-8 h-8 text-green-500 mr-3"></i>
+                                <h4 class="text-xl font-bold text-gray-800">Low-Level Runtimes</h4>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                                    <h5 class="font-bold text-green-700 mb-1">runc</h5>
+                                    <p class="text-sm text-gray-600">Industry standard low-level runtime (OCI compliant)</p>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                                    <h5 class="font-bold text-green-700 mb-1">crun</h5>
+                                    <p class="text-sm text-gray-600">Fast, lightweight alternative written in C</p>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+                                    <h5 class="font-bold text-green-700 mb-1">kata-containers</h5>
+                                    <p class="text-sm text-gray-600">VM-based isolation with container interface</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Specialized Runtimes -->
+                        <div class="feature-card">
+                            <div class="flex items-center mb-4">
+                                <i data-lucide="shield" class="w-8 h-8 text-purple-500 mr-3"></i>
+                                <h4 class="text-xl font-bold text-gray-800">Specialized Runtimes</h4>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                                    <h5 class="font-bold text-purple-700 mb-1">gVisor</h5>
+                                    <p class="text-sm text-gray-600">Application kernel for enhanced security isolation</p>
+                                </div>
+                                <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                                    <h5 class="font-bold text-purple-700 mb-1">Firecracker</h5>
+                                    <p class="text-sm text-gray-600">MicroVM technology for serverless and multi-tenant workloads</p>
+                                </div>
+                                <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+                                    <h5 class="font-bold text-purple-700 mb-1">rkt</h5>
+                                    <p class="text-sm text-gray-600 line-through opacity-75">CoreOS container runtime (deprecated)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature Comparison -->
+                <div class="bg-white rounded-lg shadow-xl p-6 md:p-8">
+                    <h3 class="text-2xl font-bold mb-6 text-center text-[#FF6B35]">Key Features and Performance Characteristics</h3>
+                    <p class="text-center text-gray-600 mb-8">Choosing the right container engine for your needs</p>
+                    
+                    <!-- Comparison Table -->
+                    <div class="overflow-x-auto mb-8">
+                        <table class="w-full border-collapse border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="border border-gray-200 p-3 text-left font-bold">Feature</th>
+                                    <th class="border border-gray-200 p-3 text-center font-bold">Docker Engine</th>
+                                    <th class="border border-gray-200 p-3 text-center font-bold">containerd</th>
+                                    <th class="border border-gray-200 p-3 text-center font-bold">CRI-O</th>
+                                    <th class="border border-gray-200 p-3 text-center font-bold">kata-containers</th>
+                                    <th class="border border-gray-200 p-3 text-center font-bold">gVisor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="border border-gray-200 p-3 font-semibold">Primary Use Case</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Development & Production</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Production K8s</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Production K8s</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">High Security</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Enhanced Isolation</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="border border-gray-200 p-3 font-semibold">Resource Overhead</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-orange-600">Higher</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-green-600">Lower</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-green-700">Lowest</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-yellow-600">Medium</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-yellow-600">Medium</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-200 p-3 font-semibold">Security Model</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Standard Linux</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Standard Linux</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Standard Linux</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-blue-600">VM Isolation</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-purple-600">User-space Kernel</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="border border-gray-200 p-3 font-semibold">Performance</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Good</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-green-600">Excellent</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-green-600">Excellent</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Good</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-yellow-600">Moderate</td>
+                                </tr>
+                                <tr>
+                                    <td class="border border-gray-200 p-3 font-semibold">Ecosystem</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm text-blue-600">Extensive</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Growing</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Kubernetes-focused</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Specialized</td>
+                                    <td class="border border-gray-200 p-3 text-center text-sm">Specialized</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Key Differentiators -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-blue-50 rounded-lg p-6">
+                            <h4 class="text-xl font-bold text-blue-800 mb-4">🏢 Production Considerations</h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex items-start">
+                                    <span class="font-bold text-blue-700 mr-2">containerd:</span>
+                                    <span class="text-gray-700">Default in most modern K8s distributions (EKS, GKE, AKS)</span>
+                                </div>
+                                <div class="flex items-start">
+                                    <span class="font-bold text-blue-700 mr-2">CRI-O:</span>
+                                    <span class="text-gray-700">Red Hat's choice for OpenShift, minimal attack surface</span>
+                                </div>
+                                <div class="flex items-start">
+                                    <span class="font-bold text-blue-700 mr-2">Docker Engine:</span>
+                                    <span class="text-gray-700">Still popular for development, being phased out in K8s</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-lg p-6">
+                            <h4 class="text-xl font-bold text-purple-800 mb-4">🎯 Specialized Use Cases</h4>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex items-start">
+                                    <span class="font-bold text-purple-700 mr-2">kata-containers:</span>
+                                    <span class="text-gray-700">When you need VM-level isolation with container speed</span>
+                                </div>
+                                <div class="flex items-start">
+                                    <span class="font-bold text-purple-700 mr-2">gVisor:</span>
+                                    <span class="text-gray-700">Google's solution for multi-tenant environments</span>
+                                </div>
+                                <div class="flex items-start">
+                                    <span class="font-bold text-purple-700 mr-2">Firecracker:</span>
+                                    <span class="text-gray-700">AWS Lambda and container-native serverless</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <p class="text-orange-800 text-sm">
+                            <strong>💡 Recommendation:</strong> Most organizations start with containerd as it's the new standard, but the choice depends on security requirements, performance needs, and existing infrastructure.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="anatomy" class="py-12">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#3A3335]">Anatomy of a Container</h2>
+                    <p class="mt-2 text-md text-gray-500 max-w-2xl mx-auto">Containers aren't magic. They are built upon two core Linux kernel technologies that provide process isolation and resource management.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 flex flex-col">
+                         <h3 class="text-2xl font-bold mb-4 text-[#FF6B35]">Namespaces: The Illusion of Isolation</h3>
+                         <p class="text-gray-600 mb-4 flex-grow">Namespaces ensure that what happens in a container stays in a container. Each container gets its own isolated view of the system, including its own process tree (PID), network stack (NET), and filesystem mounts (MNT). It's like giving each application its own private operating system without the overhead of a full VM.</p>
+                         <div class="space-y-3">
+                             <div class="flex items-center"><span class="font-bold text-[#00A1B2] mr-2 w-12">PID</span><span>Isolated process IDs. An app can be PID 1.</span></div>
+                             <div class="flex items-center"><span class="font-bold text-[#00A1B2] mr-2 w-12">NET</span><span>Isolated network interface, IP, and ports.</span></div>
+                             <div class="flex items-center"><span class="font-bold text-[#00A1B2] mr-2 w-12">MNT</span><span>Isolated filesystem view.</span></div>
+                         </div>
+                    </div>
+                     <div class="bg-white rounded-lg shadow-xl p-6 md:p-8 flex flex-col">
+                         <h3 class="text-2xl font-bold mb-4 text-[#FF6B35]">Cgroups: Setting Resource Limits</h3>
+                         <p class="text-gray-600 mb-4 flex-grow">Control Groups (cgroups) are the "resource police" for containers. They enforce limits on how much CPU and Memory a container can consume, preventing a single "noisy neighbor" application from starving other applications on the same host machine. This is critical for system stability in a multi-tenant environment.</p>
+                          <div class="space-y-3">
+                             <div class="flex items-center"><span class="font-bold text-[#00A1B2] mr-6 w-14">CPU</span><span>Limit usage to a specific share or number of cores.</span></div>
+                             <div class="flex items-center"><span class="font-bold text-[#00A1B2] mr-6 w-14">Memory</span><span>Set hard limits on RAM consumption.</span></div>
+                         </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="orchestration" class="py-12">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#3A3335]">The Challenge of Scale</h2>
+                    <p class="mt-2 text-md text-gray-500 max-w-2xl mx-auto">Running one container is simple. Managing thousands across a fleet of servers requires a powerful orchestrator like Kubernetes.</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-xl p-6 md:p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
+                        <div class="md:col-span-3">
+                             <div class="chart-container">
+                                <canvas id="orchestrationChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <h3 class="text-2xl font-bold mb-4 text-[#FF6B35]">Orchestration Responsibilities</h3>
+                            <p class="text-gray-600">An orchestrator automates the operational tasks required to run containerized applications resiliently. It's the "brain" that manages the entire lifecycle, from deployment and scaling to networking and self-healing, ensuring the desired state of your application is always maintained.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecture" class="py-12">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#3A3335]">Kubernetes Architecture</h2>
+                    <p class="mt-2 text-md text-gray-500 max-w-2xl mx-auto">A Kubernetes cluster is divided into a Control Plane (the brain) and a set of Worker Nodes (the muscle) that run your applications.</p>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-xl p-4 sm:p-6 md:p-8">
+                     <h3 class="text-2xl font-bold mb-6 text-center text-[#FF6B35]">Kubernetes Cluster Deep Dive</h3>
+                     <p class="text-center text-gray-600 mb-8 max-w-4xl mx-auto">A Kubernetes cluster is a distributed system where every component has a specific role. Understanding these interactions is key to mastering Kubernetes operations and troubleshooting.</p>
+
+                    <!-- User Layer -->
+                    <div class="mb-8">
+                        <div class="text-center mb-4">
+                            <div class="inline-block p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                                <h4 class="font-bold text-lg text-blue-800 mb-2">👥 User Layer</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div class="bg-white rounded p-3 shadow">
+                                        <div class="font-bold text-blue-700">kubectl</div>
+                                        <div class="text-gray-600">Command-line interface for cluster management</div>
+                                    </div>
+                                    <div class="bg-white rounded p-3 shadow">
+                                        <div class="font-bold text-blue-700">Web UI</div>
+                                        <div class="text-gray-600">Dashboard for visual cluster management</div>
+                                    </div>
+                                    <div class="bg-white rounded p-3 shadow">
+                                        <div class="font-bold text-blue-700">CI/CD</div>
+                                        <div class="text-gray-600">Automated deployment pipelines</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <div class="flow-line h-8"></div>
+                        </div>
+                        <div class="flex justify-center">
+                            <div class="arrow-down"></div>
+                        </div>
+                    </div>
+
+                    <!-- Control Plane -->
+                    <div class="k8s-box-accent rounded-lg p-6 mb-8">
+                        <div class="k8s-box-title-accent text-center font-bold p-3 rounded-t-md -m-6 mb-6">🧠 Control Plane (Master Nodes)</div>
+                        <p class="text-center text-gray-600 mb-6">The brain of the cluster. Makes all scheduling decisions, stores cluster state, and provides the API that everything else talks to.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">🚪 API Server</div>
+                                <div class="text-sm text-gray-600 space-y-2">
+                                    <p><strong>Role:</strong> The single point of entry for all cluster operations</p>
+                                    <p><strong>Responsibilities:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 text-xs">
+                                        <li>Validates and processes REST API requests</li>
+                                        <li>Authenticates and authorizes users</li>
+                                        <li>Runs admission controllers</li>
+                                        <li>Interfaces with etcd for data persistence</li>
+                                    </ul>
+                                    <p><strong>Port:</strong> 6443 (HTTPS)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">🗄️ etcd</div>
+                                <div class="text-sm text-gray-600 space-y-2">
+                                    <p><strong>Role:</strong> Distributed key-value store and source of truth</p>
+                                    <p><strong>Responsibilities:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 text-xs">
+                                        <li>Stores all cluster data and configuration</li>
+                                        <li>Maintains cluster state consistency</li>
+                                        <li>Provides strong consistency guarantees</li>
+                                        <li>Supports cluster backup and restore</li>
+                                    </ul>
+                                    <p><strong>Port:</strong> 2379 (client), 2380 (peer)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">📅 Scheduler</div>
+                                <div class="text-sm text-gray-600 space-y-2">
+                                    <p><strong>Role:</strong> Intelligent pod placement engine</p>
+                                    <p><strong>Responsibilities:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 text-xs">
+                                        <li>Watches for unscheduled pods</li>
+                                        <li>Evaluates node resources and constraints</li>
+                                        <li>Applies scheduling policies and priorities</li>
+                                        <li>Assigns pods to optimal nodes</li>
+                                    </ul>
+                                    <p><strong>Algorithm:</strong> Filter → Score → Bind</p>
+                                </div>
+                            </div>
+                            
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">🔄 Controller Manager</div>
+                                <div class="text-sm text-gray-600 space-y-2">
+                                    <p><strong>Role:</strong> Maintains desired state through reconciliation loops</p>
+                                    <p><strong>Key Controllers:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 text-xs">
+                                        <li>Replication Controller</li>
+                                        <li>Deployment Controller</li>
+                                        <li>Service Controller</li>
+                                        <li>Node Controller</li>
+                                        <li>Endpoint Controller</li>
+                                    </ul>
+                                    <p><strong>Pattern:</strong> Watch → Compare → Act</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <h5 class="font-bold text-orange-800 mb-2">🔒 High Availability Considerations</h5>
+                            <div class="text-sm text-orange-700 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <p><strong>etcd Cluster:</strong> Usually 3 or 5 nodes for fault tolerance</p>
+                                    <p><strong>API Server:</strong> Can run multiple instances behind a load balancer</p>
+                                </div>
+                                <div>
+                                    <p><strong>Scheduler:</strong> Leader election ensures only one is active</p>
+                                    <p><strong>Controller Manager:</strong> Also uses leader election</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Communication Flow -->
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center space-x-4 bg-blue-50 rounded-lg p-4">
+                            <div class="text-blue-700 font-bold">Control Plane</div>
+                            <div class="flex items-center space-x-2">
+                                <div class="flow-line-h w-8"></div>
+                                <div class="text-blue-600">HTTPS/gRPC</div>
+                                <div class="flow-line-h w-8"></div>
+                            </div>
+                            <div class="text-blue-700 font-bold">Worker Nodes</div>
+                        </div>
+                        <div class="flow-line h-8"></div>
+                        <div class="arrow-down"></div>
+                    </div>
+
+                    <!-- Worker Nodes -->
+                    <div class="mb-8">
+                        <h4 class="text-xl font-bold text-center mb-6 text-[#FF6B35]">💪 Worker Nodes (The Muscle)</h4>
+                        <p class="text-center text-gray-600 mb-6">Where your applications actually run. Each worker node contains the necessary components to run pods and communicate with the control plane.</p>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">Worker Node Architecture</div>
+                                <div class="space-y-4">
+                                    <div class="bg-blue-50 rounded p-3">
+                                        <div class="font-bold text-blue-800 mb-2">🤖 Kubelet</div>
+                                        <div class="text-sm text-blue-700">
+                                            <p><strong>Role:</strong> Node agent that manages pods</p>
+                                            <ul class="list-disc list-inside text-xs mt-1 space-y-1">
+                                                <li>Watches API Server for pod assignments</li>
+                                                <li>Ensures containers are running and healthy</li>
+                                                <li>Reports node and pod status back to API Server</li>
+                                                <li>Manages pod lifecycle and resource limits</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-green-50 rounded p-3">
+                                        <div class="font-bold text-green-800 mb-2">🌐 Kube-Proxy</div>
+                                        <div class="text-sm text-green-700">
+                                            <p><strong>Role:</strong> Network proxy for Services</p>
+                                            <ul class="list-disc list-inside text-xs mt-1 space-y-1">
+                                                <li>Maintains network rules for Service routing</li>
+                                                <li>Implements load balancing across pod endpoints</li>
+                                                <li>Handles iptables/IPVS rule management</li>
+                                                <li>Enables service discovery and connectivity</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-purple-50 rounded p-3">
+                                        <div class="font-bold text-purple-800 mb-2">🐳 Container Runtime</div>
+                                        <div class="text-sm text-purple-700">
+                                            <p><strong>Options:</strong> Docker, containerd, CRI-O</p>
+                                            <ul class="list-disc list-inside text-xs mt-1 space-y-1">
+                                                <li>Pulls container images from registries</li>
+                                                <li>Creates and manages container lifecycle</li>
+                                                <li>Implements CRI (Container Runtime Interface)</li>
+                                                <li>Handles container networking and storage</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="k8s-box rounded-lg p-4">
+                                <div class="k8s-box-title text-center font-bold p-2 rounded-t-md -m-4 mb-4">Running Workloads</div>
+                                <div class="space-y-4">
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+                                        <div class="font-bold text-yellow-800 mb-2">📦 Pods</div>
+                                        <div class="grid grid-cols-2 gap-2 mb-2">
+                                            <div class="bg-white rounded p-2 text-xs shadow border">
+                                                <div class="font-bold">nginx-pod</div>
+                                                <div class="text-gray-600">IP: 10.244.1.5</div>
+                                            </div>
+                                            <div class="bg-white rounded p-2 text-xs shadow border">
+                                                <div class="font-bold">api-pod</div>
+                                                <div class="text-gray-600">IP: 10.244.1.6</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-xs text-yellow-700">
+                                            <p>Smallest deployable units containing one or more containers</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-red-50 rounded p-3">
+                                        <div class="font-bold text-red-800 mb-2">🔧 System Pods</div>
+                                        <div class="text-sm text-red-700">
+                                            <ul class="list-disc list-inside text-xs space-y-1">
+                                                <li><strong>CNI Plugin:</strong> Handles pod networking</li>
+                                                <li><strong>DNS (CoreDNS):</strong> Service discovery</li>
+                                                <li><strong>Monitoring:</strong> Metrics collection</li>
+                                                <li><strong>Logging:</strong> Log aggregation</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 rounded p-3">
+                                        <div class="font-bold text-gray-800 mb-2">📊 Resource Management</div>
+                                        <div class="text-sm text-gray-700">
+                                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                                <div>
+                                                    <p><strong>CPU:</strong> 4 cores</p>
+                                                    <p><strong>Memory:</strong> 8 GB</p>
+                                                </div>
+                                                <div>
+                                                    <p><strong>Used:</strong> 2.1 cores</p>
+                                                    <p><strong>Used:</strong> 4.2 GB</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add-ons and Extensions -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h4 class="text-xl font-bold text-center mb-4 text-[#FF6B35]">🔌 Essential Add-ons</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white rounded p-4 shadow">
+                                <div class="font-bold text-blue-700 mb-2">🌐 CNI (Container Network Interface)</div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Provides pod-to-pod networking across nodes</p>
+                                    <p class="text-xs mt-1"><strong>Popular:</strong> Calico, Flannel, Weave</p>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded p-4 shadow">
+                                <div class="font-bold text-green-700 mb-2">💾 CSI (Container Storage Interface)</div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Enables persistent storage for pods</p>
+                                    <p class="text-xs mt-1"><strong>Popular:</strong> AWS EBS, GCE PD, Ceph</p>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded p-4 shadow">
+                                <div class="font-bold text-purple-700 mb-2">🔍 DNS (CoreDNS)</div>
+                                <div class="text-sm text-gray-600">
+                                    <p>Service discovery and name resolution</p>
+                                    <p class="text-xs mt-1"><strong>Default:</strong> cluster.local domain</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="pod-creation-flow" class="py-12">
+                 <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#3A3335]">Pod Creation Journey</h2>
+                    <p class="mt-2 text-md text-gray-500 max-w-2xl mx-auto">What happens inside Kubernetes when you run <code class="bg-gray-100 px-2 py-1 rounded">kubectl apply -f pod.yaml</code>? Follow the internal workflow from command to running container.</p>
+                </div>
+
+                <div class="relative w-full max-w-4xl mx-auto">
+                    <div class="space-y-8">
+                        <!-- Step 1 -->
+                        <div class="flex items-center w-full">
+                            <div class="hidden md:block w-1/2">
+                                <div class="p-4 bg-white rounded-lg shadow-lg text-right">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">1. kubectl → API Server</h4>
+                                    <code class="text-sm text-gray-600">POST /api/v1/namespaces/default/pods</code>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">1</div>
+                             <div class="w-full md:w-1/2 md:pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">1. kubectl → API Server</h4>
+                                    <p class="text-gray-600">kubectl reads your YAML file and sends an HTTP POST request to the API Server with the pod specification.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="flex items-center w-full">
+                             <div class="w-full md:w-1/2 md:pr-8 md:text-right">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                     <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">2. API Server Validation</h4>
+                                    <p class="text-gray-600">The API Server validates the pod spec against the schema, checks permissions, and runs admission controllers.</p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">2</div>
+                             <div class="hidden md:block w-1/2 pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">2. API Server Validation</h4>
+                                    <code class="text-sm text-gray-600">Validate → Authenticate → Authorize</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="flex items-center w-full">
+                            <div class="hidden md:block w-1/2">
+                                <div class="p-4 bg-white rounded-lg shadow-lg text-right">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">3. Store in etcd</h4>
+                                    <code class="text-sm text-gray-600">etcd PUT /registry/pods/default/my-pod</code>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">3</div>
+                             <div class="w-full md:w-1/2 md:pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">3. Store in etcd</h4>
+                                    <p class="text-gray-600">The API Server persists the pod object to etcd. The pod is now in "Pending" state with no assigned node.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="flex items-center w-full">
+                             <div class="w-full md:w-1/2 md:pr-8 md:text-right">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">4. Scheduler Watches</h4>
+                                    <p class="text-gray-600">The Scheduler watches for unscheduled pods, evaluates node resources, and selects the best node for placement.</p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">4</div>
+                             <div class="hidden md:block w-1/2 pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">4. Scheduler Watches</h4>
+                                    <code class="text-sm text-gray-600">Watch → Filter → Score → Bind</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="flex items-center w-full">
+                            <div class="hidden md:block w-1/2">
+                                <div class="p-4 bg-white rounded-lg shadow-lg text-right">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">5. Update Pod Assignment</h4>
+                                    <code class="text-sm text-gray-600">PATCH pod.spec.nodeName = "worker-node-1"</code>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">5</div>
+                             <div class="w-full md:w-1/2 md:pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">5. Update Pod Assignment</h4>
+                                    <p class="text-gray-600">The Scheduler updates the pod object in etcd with the assigned node name through the API Server.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6 -->
+                        <div class="flex items-center w-full">
+                             <div class="w-full md:w-1/2 md:pr-8 md:text-right">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">6. Kubelet Watches</h4>
+                                    <p class="text-gray-600">The Kubelet on the assigned node watches for pods scheduled to it and pulls the pod specification.</p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">6</div>
+                             <div class="hidden md:block w-1/2 pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">6. Kubelet Watches</h4>
+                                    <code class="text-sm text-gray-600">Watch pods where spec.nodeName = self</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 7 -->
+                        <div class="flex items-center w-full">
+                            <div class="hidden md:block w-1/2">
+                                <div class="p-4 bg-white rounded-lg shadow-lg text-right">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">7. Container Runtime</h4>
+                                    <code class="text-sm text-gray-600">docker pull nginx:latest</code>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">7</div>
+                             <div class="w-full md:w-1/2 md:pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">7. Container Runtime</h4>
+                                    <p class="text-gray-600">Kubelet instructs the container runtime (Docker/containerd) to pull the image and create the container.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 8 -->
+                        <div class="flex items-center w-full">
+                             <div class="w-full md:w-1/2 md:pr-8 md:text-right">
+                                <div class="p-4 bg-white rounded-lg shadow-lg ml-8 md:ml-0">
+                                    <h4 class="font-bold text-lg text-[#FF6B35] block md:hidden">8. Status Update</h4>
+                                    <p class="text-gray-600">Kubelet reports the pod status back to the API Server, which updates etcd. Pod status changes to "Running".</p>
+                                </div>
+                            </div>
+                            <div class="hidden md:block z-10 w-8 h-8 rounded-full bg-[#00A1B2] text-white flex items-center justify-center font-bold shadow-lg">8</div>
+                             <div class="hidden md:block w-1/2 pl-8">
+                                <div class="p-4 bg-white rounded-lg shadow-lg">
+                                    <h4 class="font-bold text-lg text-[#FF6B35]">8. Status Update</h4>
+                                    <code class="text-sm text-gray-600">PATCH pod.status.phase = "Running"</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result -->
+                        <div class="text-center">
+                            <div class="inline-block p-6 bg-green-100 border-2 border-green-300 rounded-lg shadow-lg">
+                                <h4 class="font-bold text-xl text-green-800 mb-2">🎉 Container Running!</h4>
+                                <p class="text-green-700">Your application is now running in a container on the Kubernetes cluster, monitored and managed by the kubelet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+            <footer class="text-center py-12 mt-16 border-t border-gray-200">
+                <div class="max-w-4xl mx-auto">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Continue Your Kubernetes Journey</h3>
+                    <p class="text-lg text-gray-600 mb-8">This guide covered the fundamentals. Ready for hands-on practice?</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <a href="#" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                            <i data-lucide="play-circle" class="w-5 h-5 mr-2"></i>
+                            Start Labs
+                        </a>
+                        <a href="#" class="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-900 rounded-lg font-semibold hover:bg-gray-200 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                            <i data-lucide="book-open" class="w-5 h-5 mr-2"></i>
+                            Documentation
+                        </a>
+                        <a href="#" class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                            <i data-lucide="download" class="w-5 h-5 mr-2"></i>
+                            Download Resources
+                        </a>
+                    </div>
+                    <div class="mt-8 pt-8 border-t border-gray-200">
+                        <p class="text-gray-500">A visual guide to the fundamentals of Kubernetes architecture and operations.</p>
+                    </div>
+                </div>
+            </footer>
+        </main>
+        </div>
+    </div>
+
+    <script>
+        const chartJsTooltip = {
+            callbacks: {
+                title: function(tooltipItems) {
+                    const item = tooltipItems[0];
+                    let label = item.chart.data.labels[item.dataIndex];
+                    if (Array.isArray(label)) {
+                        return label.join(' ');
+                    } else {
+                        return label;
+                    }
+                }
+            }
+        };
+
+        const wrapLabel = (label) => {
+            const max = 16;
+            if (label.length <= max) {
+                return label;
+            }
+            const words = label.split(' ');
+            let lines = [];
+            let currentLine = '';
+            for(const word of words) {
+                if ((currentLine + ' ' + word).length > max && currentLine.length > 0) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = currentLine ? currentLine + ' ' + word : word;
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            return lines;
+        };
+        
+        const colors = {
+            primary: '#00A1B2',
+            secondary: '#61C1D3',
+            accent: '#FF6B35',
+            dark: '#3A3335',
+            light: '#F7F7F7'
+        };
+
+
+        
+        const orchestrationChartCtx = document.getElementById('orchestrationChart').getContext('2d');
+        const rawOrchestrationLabels = ['Scheduling', 'Self-Healing', 'Configuration Management', 'Scaling', 'Service Discovery', 'Load Balancing'];
+        new Chart(orchestrationChartCtx, {
+            type: 'radar',
+            data: {
+                labels: rawOrchestrationLabels.map(wrapLabel),
+                datasets: [{
+                    label: 'Importance',
+                    data: [9, 10, 8, 10, 9, 9],
+                    backgroundColor: 'rgba(0, 161, 178, 0.2)',
+                    borderColor: colors.primary,
+                    pointBackgroundColor: colors.primary,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: colors.primary,
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: chartJsTooltip
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: {
+                           display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Scroll Progress Bar
+        function updateProgressBar() {
+            const scrollTop = window.pageYOffset;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            document.getElementById('progressBar').style.width = scrollPercent + '%';
+        }
+
+        // Navigation Dots
+        function updateNavDots() {
+            const sections = ['hero', 'container-engines', 'anatomy', 'orchestration', 'architecture', 'pod-creation-flow'];
+            const navDots = document.querySelectorAll('.nav-dot');
+            const scrollPos = window.pageYOffset + 100;
+
+            sections.forEach((sectionId, index) => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const sectionTop = section.offsetTop;
+                    const sectionBottom = sectionTop + section.offsetHeight;
+
+                    if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
+                        navDots.forEach(dot => dot.classList.remove('active'));
+                        if (navDots[index]) {
+                            navDots[index].classList.add('active');
+                        }
+                    }
+                }
+            });
+        }
+
+        // Navigation Dot Click Handler
+        document.querySelectorAll('.nav-dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                const sectionId = e.target.getAttribute('data-section');
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Scroll Event Listeners
+        window.addEventListener('scroll', () => {
+            updateProgressBar();
+            updateNavDots();
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate__animated', 'animate__fadeInUp');
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements for animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const elementsToAnimate = document.querySelectorAll('.feature-card, .k8s-box, .step-card');
+            elementsToAnimate.forEach(el => observer.observe(el));
+        });
+
+        // Chart Configuration Updates
+        const enhancedColors = {
+            primary: '#326CE5',
+            secondary: '#61C1D3',
+            accent: '#FF6B35',
+            success: '#10B981',
+            warning: '#F59E0B'
+        };
+
+        // Enhanced chart with better styling
+        new Chart(orchestrationChartCtx, {
+            type: 'radar',
+            data: {
+                labels: rawOrchestrationLabels.map(wrapLabel),
+                datasets: [{
+                    label: 'Importance',
+                    data: [9, 10, 8, 10, 9, 9],
+                    backgroundColor: 'rgba(50, 108, 229, 0.15)',
+                    borderColor: enhancedColors.primary,
+                    pointBackgroundColor: enhancedColors.primary,
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: enhancedColors.primary,
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        ...chartJsTooltip,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: enhancedColors.primary,
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true,
+                            color: 'rgba(50, 108, 229, 0.1)',
+                            lineWidth: 1
+                        },
+                        grid: {
+                            color: 'rgba(50, 108, 229, 0.1)'
+                        },
+                        pointLabels: {
+                            color: '#374151',
+                            font: {
+                                size: 12,
+                                weight: '500'
+                            }
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 10,
+                        ticks: {
+                            display: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 ADORSYS-GIS
+Copyright (c) 2024 Kubernetes Workshop Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,59 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Additional Terms for Educational Use
+
+This workshop content is specifically designed for educational purposes and includes:
+
+### Permitted Uses
+- Educational and training purposes in academic or corporate settings
+- Non-commercial workshops and meetups
+- Personal learning and skill development  
+- Modification and adaptation for specific learning objectives
+- Distribution in educational contexts with proper attribution
+
+### Attribution Requirements
+When using or adapting this content, please include:
+- Original source attribution
+- Link to the source repository
+- Notice of any modifications made
+
+### Third-Party Acknowledgments
+
+This workshop includes or references:
+- Kubernetes® is a registered trademark of The Linux Foundation
+- Docker® is a registered trademark of Docker, Inc.
+- Cloud provider logos and trademarks belong to their respective owners
+- Icons and graphics from Lucide (ISC License) and Feather (MIT License)
+
+### Educational Content Notice
+
+The examples, configurations, and code samples in this workshop are designed 
+for educational purposes and may require additional hardening and optimization
+before use in production environments. Users are responsible for adapting
+security practices and configurations to their specific requirements.
+
+### Kubernetes Security Considerations
+
+The lab examples include security best practices as educational demonstrations.
+However, security requirements vary by environment and use case. Always:
+- Review security contexts and policies for your specific needs
+- Implement proper authentication and authorization
+- Follow your organization's security guidelines
+- Stay updated with latest Kubernetes security recommendations
+
+For production deployments, consult the official Kubernetes security
+documentation and consider professional security review.
+
+## Support and Community
+
+This project is community-driven and educational. For support:
+- Review documentation and troubleshooting guides
+- Check existing issues in the repository
+- Contribute improvements and corrections
+- Share your learning experience with the community
+
+The maintainers provide this content on a volunteer basis. While we strive
+for accuracy and completeness, this educational material is provided "as-is"
+without warranty of any kind.
