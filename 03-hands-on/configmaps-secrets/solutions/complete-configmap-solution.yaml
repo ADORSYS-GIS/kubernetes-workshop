@@ -1,0 +1,644 @@
+# Complete ConfigMap and Secret Solution
+# This demonstrates production-ready configuration management patterns
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: production-app-config
+  labels:
+    app: production-app
+    environment: production
+    version: v2.1.0
+  annotations:
+    config.kubernetes.io/last-updated: "2024-01-15T10:30:00Z"
+    config.kubernetes.io/validation: "passed"
+data:
+  # Application configuration
+  environment: "production"
+  app_name: "kubernetes-workshop-production"
+  app_version: "v2.1.0"
+  
+  # Database configuration
+  database_host: "postgres-prod.database.svc.cluster.local"
+  database_port: "5432"
+  database_name: "workshop_prod"
+  database_pool_min: "5"
+  database_pool_max: "20"
+  database_timeout: "30"
+  
+  # Cache configuration
+  redis_host: "redis-prod.cache.svc.cluster.local"
+  redis_port: "6379"
+  redis_db: "0"
+  redis_pool_size: "10"
+  
+  # Logging configuration
+  log_level: "warn"
+  log_format: "json"
+  log_output: "stdout"
+  
+  # Feature flags
+  feature_new_ui: "true"
+  feature_advanced_analytics: "true"
+  feature_beta_features: "false"
+  
+  # Performance settings
+  worker_processes: "4"
+  max_connections: "1000"
+  connection_timeout: "30"
+  request_timeout: "60"
+  
+  # Monitoring configuration
+  metrics_enabled: "true"
+  metrics_port: "9090"
+  health_check_path: "/health"
+  
+  # Application properties file
+  application.properties: |
+    # Production Application Configuration
+    server.port=8080
+    server.host=0.0.0.0
+    server.max-http-header-size=8KB
+    server.compression.enabled=true
+    
+    # Database Configuration
+    spring.datasource.url=jdbc:postgresql://postgres-prod.database.svc.cluster.local:5432/workshop_prod
+    spring.datasource.driver-class-name=org.postgresql.Driver
+    spring.datasource.hikari.minimum-idle=5
+    spring.datasource.hikari.maximum-pool-size=20
+    spring.datasource.hikari.idle-timeout=300000
+    spring.datasource.hikari.connection-timeout=30000
+    spring.datasource.hikari.leak-detection-threshold=60000
+    
+    # JPA Configuration
+    spring.jpa.hibernate.ddl-auto=validate
+    spring.jpa.show-sql=false
+    spring.jpa.properties.hibernate.format_sql=false
+    spring.jpa.properties.hibernate.use_sql_comments=false
+    
+    # Caching Configuration
+    spring.cache.type=redis
+    spring.redis.host=redis-prod.cache.svc.cluster.local
+    spring.redis.port=6379
+    spring.redis.database=0
+    spring.redis.timeout=2000ms
+    spring.redis.jedis.pool.max-active=10
+    spring.redis.jedis.pool.max-idle=10
+    spring.redis.jedis.pool.min-idle=1
+    
+    # Security Configuration
+    server.ssl.enabled=true
+    server.ssl.protocol=TLS
+    server.ssl.enabled-protocols=TLSv1.2,TLSv1.3
+    
+    # Logging Configuration
+    logging.level.root=WARN
+    logging.level.com.workshop=INFO
+    logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} - %msg%n
+    logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+    
+    # Actuator Configuration
+    management.endpoints.web.exposure.include=health,metrics,prometheus
+    management.endpoint.health.show-details=always
+    management.metrics.export.prometheus.enabled=true
+  
+  # Nginx configuration for reverse proxy
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging format
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for" '
+                        'rt=$request_time uct="$upstream_connect_time" '
+                        'uht="$upstream_header_time" urt="$upstream_response_time"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        # Performance optimizations
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 10M;
+        
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+        
+        # Rate limiting
+        limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+        limit_conn_zone $binary_remote_addr zone=conn_limit_per_ip:10m;
+        
+        # Security headers
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        
+        upstream backend {
+            server backend-app:8080 max_fails=3 fail_timeout=30s;
+            keepalive 32;
+        }
+        
+        server {
+            listen 8080;
+            server_name _;
+            
+            # Rate limiting
+            limit_req zone=api burst=20 nodelay;
+            limit_conn conn_limit_per_ip 10;
+            
+            # Health check endpoint
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # Metrics endpoint for Prometheus
+            location /metrics {
+                access_log off;
+                stub_status on;
+                allow 10.0.0.0/8;
+                allow 172.16.0.0/12;
+                allow 192.168.0.0/16;
+                deny all;
+            }
+            
+            # Static files
+            location /static/ {
+                root /usr/share/nginx/html;
+                expires 1y;
+                add_header Cache-Control "public, immutable";
+            }
+            
+            # API proxy
+            location /api/ {
+                proxy_pass http://backend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 30s;
+                proxy_read_timeout 30s;
+                
+                proxy_buffering on;
+                proxy_buffer_size 128k;
+                proxy_buffers 4 256k;
+                proxy_busy_buffers_size 256k;
+            }
+            
+            # Default location
+            location / {
+                root /usr/share/nginx/html;
+                index index.html index.htm;
+                try_files $uri $uri/ =404;
+            }
+        }
+    }
+  
+  # Frontend HTML content
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Production App - Kubernetes Workshop</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f9fa; }
+            .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #326CE5, #4285f4); color: white; padding: 40px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
+            .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+            .header p { font-size: 1.2em; opacity: 0.9; }
+            .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+            .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); border-left: 4px solid #326CE5; }
+            .card h3 { color: #326CE5; margin-bottom: 15px; font-size: 1.3em; }
+            .card p { color: #666; line-height: 1.6; }
+            .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+            .status-item { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+            .status-value { font-size: 2em; font-weight: bold; color: #28a745; }
+            .status-label { color: #666; margin-top: 5px; }
+            .config-info { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+            .config-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+            .config-row:last-child { border-bottom: none; }
+            .config-key { font-weight: bold; color: #333; }
+            .config-value { color: #666; font-family: 'Courier New', monospace; }
+            .success { color: #28a745; }
+            .warning { color: #ffc107; }
+            .error { color: #dc3545; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🚀 Production Application</h1>
+                <p>Kubernetes Workshop - ConfigMaps & Secrets Demo</p>
+            </div>
+            
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-value success">✅</div>
+                    <div class="status-label">App Status</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value success">✅</div>
+                    <div class="status-label">Database</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value success">✅</div>
+                    <div class="status-label">Cache</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" id="uptime">0</div>
+                    <div class="status-label">Uptime (min)</div>
+                </div>
+            </div>
+            
+            <div class="cards">
+                <div class="card">
+                    <h3>🔧 Configuration Management</h3>
+                    <p>This application demonstrates production-ready configuration management using Kubernetes ConfigMaps and Secrets. All sensitive data is properly secured and configuration is environment-specific.</p>
+                </div>
+                <div class="card">
+                    <h3>🔒 Security Best Practices</h3>
+                    <p>Secrets are mounted as files with proper permissions, environment variables use secretKeyRef, and the application runs with non-root user and read-only filesystem.</p>
+                </div>
+                <div class="card">
+                    <h3>📊 Monitoring Ready</h3>
+                    <p>Application includes health checks, metrics endpoints, and structured logging. Ready for integration with Prometheus and Grafana monitoring stack.</p>
+                </div>
+            </div>
+            
+            <div class="config-info">
+                <h3>📋 Current Configuration</h3>
+                <div class="config-row">
+                    <span class="config-key">Environment:</span>
+                    <span class="config-value success">production</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Application Version:</span>
+                    <span class="config-value">v2.1.0</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Database Host:</span>
+                    <span class="config-value">postgres-prod.database.svc.cluster.local</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Cache Host:</span>
+                    <span class="config-value">redis-prod.cache.svc.cluster.local</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Log Level:</span>
+                    <span class="config-value warning">warn</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Metrics Enabled:</span>
+                    <span class="config-value success">true</span>
+                </div>
+                <div class="config-row">
+                    <span class="config-key">Feature Flags:</span>
+                    <span class="config-value">New UI: ✅, Analytics: ✅, Beta: ❌</span>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            // Simulate uptime counter
+            let startTime = Date.now();
+            function updateUptime() {
+                let uptime = Math.floor((Date.now() - startTime) / 60000);
+                document.getElementById('uptime').textContent = uptime;
+            }
+            setInterval(updateUptime, 1000);
+            updateUptime();
+        </script>
+    </body>
+    </html>
+
+---
+# Production Secret with proper security practices
+apiVersion: v1
+kind: Secret
+metadata:
+  name: production-app-secret
+  labels:
+    app: production-app
+    environment: production
+  annotations:
+    kubernetes.io/description: "Production application secrets"
+    security.kubernetes.io/audit: "required"
+type: Opaque
+data:
+  # Database credentials (base64 encoded)
+  # db_username = "prod_user"
+  db_username: cHJvZF91c2Vy
+  # db_password = "Pr0d-S3cur3-P@ssw0rd-2024!"
+  db_password: UHIwZC1TM2N1cjMtUEBzc3cwcmQtMjAyNCE=
+  
+  # API keys (base64 encoded)
+  # jwt_secret = "super-secure-jwt-signing-key-2024-production"
+  jwt_secret: c3VwZXItc2VjdXJlLWp3dC1zaWduaW5nLWtleS0yMDI0LXByb2R1Y3Rpb24=
+  # api_key = "prod-api-key-abcd1234567890"
+  api_key: cHJvZC1hcGkta2V5LWFiY2QxMjM0NTY3ODkw
+  
+  # External service credentials (base64 encoded)
+  # redis_password = "Redis-Prod-Pass-2024"
+  redis_password: UmVkaXMtUHJvZC1QYXNzLTIwMjQ=
+  # monitoring_token = "prom-token-xyz789"
+  monitoring_token: cHJvbS10b2tlbi14eXo3ODk=
+  
+  # Certificate data (base64 encoded)
+  # ssl_cert_password = "cert-pass-2024"
+  ssl_cert_password: Y2VydC1wYXNzLTIwMjQ=
+
+---
+# Complete production deployment using ConfigMaps and Secrets
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: production-app
+  labels:
+    app: production-app
+    version: v2.1.0
+    environment: production
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: production-app
+  template:
+    metadata:
+      labels:
+        app: production-app
+        version: v2.1.0
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        config.kubernetes.io/checksum: "{{ checksum of config }}"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      
+      containers:
+      - name: app
+        image: nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+            ephemeral-storage: "500Mi"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        
+        # Environment variables from ConfigMap
+        env:
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: production-app-config
+              key: app_name
+        - name: APP_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: production-app-config
+              key: app_version
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: production-app-config
+              key: environment
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: production-app-config
+              key: log_level
+        
+        # Environment variables from Secret
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: production-app-secret
+              key: db_username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: production-app-secret
+              key: db_password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: production-app-secret
+              key: jwt_secret
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: production-app-secret
+              key: api_key
+        
+        # Load additional config as environment variables
+        envFrom:
+        - configMapRef:
+            name: production-app-config
+        
+        # Health checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 6
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          timeoutSeconds: 2
+          failureThreshold: 3
+          successThreshold: 1
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        # Volume mounts
+        volumeMounts:
+        - name: app-config
+          mountPath: /etc/app/config
+          readOnly: true
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+          readOnly: true
+        - name: html-content
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        - name: app-secrets
+          mountPath: /etc/app/secrets
+          readOnly: true
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: var-cache
+          mountPath: /var/cache/nginx
+        - name: var-run
+          mountPath: /var/run
+        - name: var-log
+          mountPath: /var/log/nginx
+      
+      volumes:
+      - name: app-config
+        configMap:
+          name: production-app-config
+          defaultMode: 0644
+      - name: nginx-config
+        configMap:
+          name: production-app-config
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+          defaultMode: 0644
+      - name: html-content
+        configMap:
+          name: production-app-config
+          items:
+          - key: index.html
+            path: index.html
+          defaultMode: 0644
+      - name: app-secrets
+        secret:
+          secretName: production-app-secret
+          defaultMode: 0400
+          items:
+          - key: db_username
+            path: db_username
+          - key: db_password
+            path: db_password
+          - key: jwt_secret
+            path: jwt_secret
+          - key: api_key
+            path: api_key
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: "100Mi"
+      - name: var-cache
+        emptyDir:
+          sizeLimit: "100Mi"
+      - name: var-run
+        emptyDir:
+          sizeLimit: "10Mi"
+      - name: var-log
+        emptyDir:
+          sizeLimit: "100Mi"
+      
+      # Pod scheduling preferences
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - production-app
+              topologyKey: kubernetes.io/hostname
+      
+      terminationGracePeriodSeconds: 30
+
+---
+# Service for the production application
+apiVersion: v1
+kind: Service
+metadata:
+  name: production-app-service
+  labels:
+    app: production-app
+    environment: production
+spec:
+  selector:
+    app: production-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  type: ClusterIP
