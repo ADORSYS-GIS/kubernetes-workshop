@@ -30,15 +30,19 @@ jobs:
       - name: Create site directory and copy files
         run: |
           mkdir -p _site
+          echo "Copying kube.html to _site/index.html..."
           cp kube.html _site/index.html
           # Copy any other assets if they exist
           if [ -d "assets" ]; then
+            echo "Copying assets directory..."
             cp -r assets _site/
           fi
           # Create a simple .nojekyll file to bypass Jekyll processing
           touch _site/.nojekyll
-          echo "Site files created successfully"
+          echo "Site files created successfully:"
           ls -la _site/
+          echo "Contents of index.html (first 5 lines):"
+          head -5 _site/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
