@@ -1,0 +1,119 @@
+# Basic ConfigMap example
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app: demo-app
+    component: configuration
+data:
+  # Simple key-value pairs
+  database_host: "postgres.default.svc.cluster.local"
+  database_port: "5432"
+  log_level: "info"
+  app_name: "kubernetes-workshop-app"
+  
+  # Configuration file content
+  app.properties: |
+    # Application Configuration
+    server.port=8080
+    server.host=0.0.0.0
+    
+    # Database Configuration  
+    database.url=jdbc:postgresql://postgres.default.svc.cluster.local:5432/workshop
+    database.driver=org.postgresql.Driver
+    database.pool.max=10
+    database.pool.min=2
+    
+    # Logging Configuration
+    logging.level=info
+    logging.format=json
+    logging.output=/var/log/app.log
+  
+  nginx.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+            try_files $uri $uri/ =404;
+        }
+        
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+        
+        location /config {
+            return 200 "Config loaded successfully\n";
+            add_header Content-Type text/plain;
+        }
+    }
+
+---
+# Multi-environment ConfigMaps
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: development-config
+  labels:
+    environment: development
+data:
+  environment: "development"
+  debug: "true"
+  database_host: "postgres-dev.default.svc.cluster.local"
+  redis_host: "redis-dev.default.svc.cluster.local"
+  log_level: "debug"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: staging-config
+  labels:
+    environment: staging
+data:
+  environment: "staging"
+  debug: "false"
+  database_host: "postgres-staging.default.svc.cluster.local"
+  redis_host: "redis-staging.default.svc.cluster.local"
+  log_level: "info"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: production-config
+  labels:
+    environment: production
+data:
+  environment: "production"
+  debug: "false"
+  database_host: "postgres-prod.default.svc.cluster.local"
+  redis_host: "redis-prod.default.svc.cluster.local"
+  log_level: "warn"
+  backup_enabled: "true"
+  monitoring_enabled: "true"
+
+---
+# Immutable ConfigMap (Kubernetes 1.21+)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: immutable-config
+  labels:
+    app: static-config
+immutable: true
+data:
+  version: "v1.2.3"
+  build_date: "2024-01-15"
+  git_commit: "abc123def456"
+  release_notes: |
+    Version 1.2.3 Release Notes:
+    - Fixed memory leak in data processing
+    - Improved error handling
+    - Added new monitoring metrics
+    - Updated dependencies for security patches

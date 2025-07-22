@@ -1,0 +1,59 @@
+# Kubernetes temporary files
+*.tmp
+*.temp
+*~
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+
+# Kubernetes generated files
+kustomization.yaml.orig
+*.orig
+
+# Temporary minikube files
+.minikube/
+.kube/config.backup*
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# Python bytecode (if using any Python tools)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary lab outputs
+lab-output/
+test-results/
+
+# Certificate files (for security)
+*.crt
+*.key
+*.pem
+ca-certificates/
+
+# Docker build context (if building custom images)
+docker-build/
+.dockerignore.bak
