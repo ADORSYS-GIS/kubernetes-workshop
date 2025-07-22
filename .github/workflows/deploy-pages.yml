@@ -3,8 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch: # Allow manual triggering
 
 permissions:
   contents: read
@@ -28,7 +27,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Copy HTML file as index
+      - name: Create site directory and copy files
         run: |
           mkdir -p _site
           cp kube.html _site/index.html
@@ -36,6 +35,10 @@ jobs:
           if [ -d "assets" ]; then
             cp -r assets _site/
           fi
+          # Create a simple .nojekyll file to bypass Jekyll processing
+          touch _site/.nojekyll
+          echo "Site files created successfully"
+          ls -la _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
